@@ -29,7 +29,11 @@ export default function AuthPage({ onLogin }) {
         onLogin(res.data.data.user);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      const msg = err.response?.data?.message
+        || err.response?.data?.errors?.[0]?.message
+        || err.response?.data?.errors?.[0]
+        || 'Something went wrong. Please try again.';
+      setError(msg);
     } finally {
       setLoading(false);
     }

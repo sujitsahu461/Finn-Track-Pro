@@ -13,10 +13,10 @@ import { logger }    from "../utils/logger.js";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 const signupSchema = z.object({
-  name:     z.string().min(2).max(80),
-  username: z.string().min(3).max(30),
-  email:    z.string().email(),
-  password: z.string().min(8).max(72).regex(/[A-Z]/, "Must contain uppercase").regex(/[0-9]/, "Must contain a number"),
+  name:     z.string().min(2, "Name must be at least 2 characters").max(80),
+  username: z.string().min(3, "Username must be at least 3 characters").max(30).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers and underscores"),
+  email:    z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters").max(72),
 });
 
 const loginSchema = z.object({
