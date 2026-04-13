@@ -8,8 +8,8 @@ import { rateLimit } from "express-rate-limit";
 
 const router = Router();
 
-// Stricter rate limit on auth endpoints (5 attempts / 15 min)
-const authLimiter = rateLimit({ windowMs:15*60*1000, max:5, message:{ success:false, message:"Too many auth attempts." } });
+// Rate limit on auth endpoints (50 attempts / 15 min)
+const authLimiter = rateLimit({ windowMs:15*60*1000, max:50, message:{ success:false, message:"Too many auth attempts. Please wait 15 minutes." } });
 
 router.post("/signup",  authLimiter, signup);
 router.post("/login",   authLimiter, login);
