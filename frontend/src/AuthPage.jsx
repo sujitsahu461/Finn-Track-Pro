@@ -29,11 +29,13 @@ export default function AuthPage({ onLogin }) {
         onLogin(res.data.data.user);
       }
     } catch (err) {
-      const msg = err.response?.data?.message
-        || err.response?.data?.errors?.[0]?.message
-        || err.response?.data?.errors?.[0]
-        || 'Something went wrong. Please try again.';
-      setError(msg);
+      const data = err.response?.data;
+      if (data?.errors?.length) {
+        // Show specific Zod validation error e.g. "username: Username can only contain..."
+        setError(data.errors.map(e => `${e.field}: ${e.message}`).join(' | '));
+      } else {
+        setError(data?.message || 'Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -108,6 +110,7 @@ export default function AuthPage({ onLogin }) {
             <div className="input-group">
               <label>Password*</label>
               <input required type="password" placeholder="••••••••" value={formData.password} onChange={set('password')} />
+              {!isLogin && <span style={{fontSize:'11px',color:'#6b7280',marginTop:3,display:'block'}}>Minimum 6 characters</span>}
             </div>
 
             {isLogin && (
