@@ -141,18 +141,25 @@ export default function FinTrackPro({ user, onLogout }) {
   
   const savingsRate = monthMain && monthMain > 0 ? ((remaining / monthMain) * 100).toFixed(1) : 0;
 
-  // Monthly bar-chart data (Jan–Apr) comparing Main Amount vs Spent
+  // Monthly bar-chart data — last 6 months dynamically
   const monthlyData = useMemo(() => {
-    return ["Jan","Feb","Mar","Apr"].map((monthStr, i) => {
-      const prefix = `2024-0${i + 1}`;
+    const months = [];
+    const [curY, curM] = currentMonthStr.split("-").map(Number);
+    for (let i = 5; i >= 0; i--) {
+      let m = curM - i;
+      let y = curY;
+      if (m <= 0) { m += 12; y -= 1; }
+      const prefix = `${y}-${String(m).padStart(2, "0")}`;
+      const label  = new Date(y, m - 1).toLocaleString("default", { month: "short" });
       const mTxs   = txs.filter(t => t.date.startsWith(prefix));
-      return {
-        month: monthStr,
+      months.push({
+        month: label,
         limit: mainAmounts[prefix] || 0,
         spent: mTxs.reduce((s, t) => s + t.amount, 0),
-      };
-    });
-  }, [txs, mainAmounts]);
+      });
+    }
+    return months;
+  }, [txs, mainAmounts, currentMonthStr]);
 
   // Category breakdown
   const catData = useMemo(() => {
@@ -588,55 +595,67 @@ export default function FinTrackPro({ user, onLogout }) {
   );
 
   // ── MODAL: Add / Edit Transaction ────────────────────────────────────────
-  const ModalAddEdit = () => {
-    return (
-      <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:"1rem" }}>
-        <div style={{ ...S.card, width:440, maxWidth:"100%" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.25rem" }}>
-            <h2 style={{ margin:0, fontSize:18, fontWeight:700 }}>{modal==="edit" ? "Edit" : "Log"} Expense</h2>
-            <button onClick={() => setModal(null)} style={{ ...S.btn, padding:"0.35rem", background:"transparent", color:T.textMuted }}>
-              <X size={20} />
-            </button>
-          </div>
+  // Defined as JSX variable (NOT a component) so it never remounts on keystroke
+  const modalAddEditJSX = (modal === "add" || modal === "edit") && (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:"1rem" }}>
+      <div style={{ ...S.card, width:440, maxWidth:"100%" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.25rem" }}>
+          <h2 style={{ margin:0, fontSize:18, fontWeight:700 }}>{modal==="edit" ? "Edit" : "Log"} Expense</h2>
+          <button onClick={() => setModal(null)} style={{ ...S.btn, padding:"0.35rem", background:"transparent", color:T.textMuted }}>
+            <X size={20} />
+          </button>
+        </div>
 
-          <div style={{ display:"grid", gap:14 }}>
+        <div style={{ display:"grid", gap:14 }}>
+          <div>
+            <label style={S.label}>Amount ({sym})</label>
+            <input
+              type="number" min="0" step="0.01"
+              value={form.amount}
+              onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
+              placeholder="0.00"
+              style={{ ...S.input, fontSize:20, fontWeight:700 }}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label style={S.label}>Description</label>
+            <input
+              value={form.desc}
+              onChange={e => setForm(p => ({ ...p, desc: e.target.value }))}
+              placeholder="What did you spend on?"
+              style={S.input}
+            />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             <div>
-              <label style={S.label}>Amount ({sym})</label>
-              <input type="number" min="0" step="0.01" value={form.amount}
-                onChange={e => setForm(p => ({ ...p, amount:e.target.value }))}
-                placeholder="0.00" style={{ ...S.input, fontSize:20, fontWeight:700 }} />
+              <label style={S.label}>Category</label>
+              <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} style={{ ...S.input, cursor:"pointer" }}>
+                {CATS_EXPENSE.map(c => <option key={c}>{c}</option>)}
+              </select>
             </div>
             <div>
-              <label style={S.label}>Description</label>
-              <input value={form.desc} onChange={e => setForm(p => ({ ...p, desc:e.target.value }))}
-                placeholder="What did you spend on?" style={S.input} />
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-              <div>
-                <label style={S.label}>Category</label>
-                <select value={form.category} onChange={e => setForm(p => ({ ...p, category:e.target.value }))} style={{ ...S.input, cursor:"pointer" }}>
-                  {CATS_EXPENSE.map(c => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={S.label}>Date</label>
-                <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date:e.target.value }))} style={S.input} />
-              </div>
+              <label style={S.label}>Date</label>
+              <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} style={{ ...S.input, cursor:"pointer" }} />
             </div>
           </div>
+          <label style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, cursor:"pointer" }}>
+            <input type="checkbox" checked={form.recurring} onChange={e => setForm(p => ({ ...p, recurring: e.target.checked }))} />
+            Recurring expense
+          </label>
+        </div>
 
-          <div style={{ display:"flex", gap:10, marginTop:"1.5rem" }}>
-            <button onClick={() => setModal(null)} style={{ ...S.btn, flex:1, justifyContent:"center", background:T.cardAlt, border:`1px solid ${T.border}`, color:T.text }}>
-              Cancel
-            </button>
-            <button onClick={saveTx} style={{ ...S.btn, flex:1, justifyContent:"center", background:T.red, color:"#fff" }}>
-              {modal==="edit" ? "Update" : "Add"} Expense
-            </button>
-          </div>
+        <div style={{ display:"flex", gap:10, marginTop:"1.5rem" }}>
+          <button onClick={() => setModal(null)} style={{ ...S.btn, flex:1, justifyContent:"center", background:T.cardAlt, border:`1px solid ${T.border}`, color:T.text }}>
+            Cancel
+          </button>
+          <button onClick={saveTx} style={{ ...S.btn, flex:1, justifyContent:"center", background:T.accent, color:"#fff" }}>
+            {modal==="edit" ? "Update" : "Add"} Expense
+          </button>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
   
   // ── MODAL: Main Amount (current month) ─────────────────────────────────
   const ModalMainAmount = () => (
@@ -779,7 +798,7 @@ export default function FinTrackPro({ user, onLogout }) {
       </main>
 
       {/* ── MODAL OVERLAY ── */}
-      {(modal === "add" || modal === "edit") && <ModalAddEdit />}
+      {modalAddEditJSX}
       {modal === "mainAmount" && <ModalMainAmount />}
       {modal === "newMonth" && <ModalNewMonth />}
 
