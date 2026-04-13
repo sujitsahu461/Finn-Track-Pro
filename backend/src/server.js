@@ -47,6 +47,8 @@ const app  = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Global Middleware ────────────────────────────────────────────────────────
+// Trust Render's reverse proxy so rate-limiter sees real client IPs
+app.set("trust proxy", 1);
 app.use(helmet());                              // Security headers
 const allowedOrigins = [
   process.env.CLIENT_URL,
