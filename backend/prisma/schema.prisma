@@ -1,0 +1,96 @@
+// FinTrack Pro — Prisma Schema
+// Database: PostgreSQL (Neon / Supabase)
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  username     String        @unique
+  name         String
+  passwordHash String
+  currency     String        @default("USD")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  transactions Transaction[]
+  budgets      Budget[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+// ─── RefreshToken (JWT rotation) ─────────────────────────────────────────────
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+// ─── Transaction ─────────────────────────────────────────────────────────────
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        String // INCOME | EXPENSE
+  amount      Float         
+  category    String
+  description String
+  date        DateTime        
+  recurring   Boolean         @default(false)
+  recurrence  String?     // null if not recurring
+  notes       String?
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([userId, date])
+  @@index([userId, category])
+  @@map("transactions")
+}
+
+// ─── Budget ──────────────────────────────────────────────────────────────────
+model Budget {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  month     Int      // 1–12
+  year      Int
+  total     Float   // overall monthly limit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categoryBudgets CategoryBudget[]
+
+  @@unique([userId, month, year])
+  @@map("budgets")
+}
+
+// ─── CategoryBudget ──────────────────────────────────────────────────────────
+model CategoryBudget {
+  id       String  @id @default(cuid())
+  budgetId String
+  budget   Budget  @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  category String
+  limit    Float 
+
+  @@unique([budgetId, category])
+  @@map("category_budgets")
+}
