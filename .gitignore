@@ -1,25 +1,32 @@
 # Dependencies
 node_modules/
+
+# Environment variables (NEVER commit these)
 .env
+.env.local
+.env.production
 
 # Build output
 dist/
 build/
 
-# Database
-backend/dev.db
-backend/dev.db-journal
+# Database files
+*.db
+*.db-journal
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
 
 # Logs
 *.log
 npm-debug.log*
+logs/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Prisma generated
-backend/node_modules/.prisma/
+# Prisma generated client
+backend/node_modules/
 
 # Vite cache
 frontend/.vite/

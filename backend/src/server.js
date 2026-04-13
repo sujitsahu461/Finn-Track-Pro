@@ -48,7 +48,23 @@ const PORT = process.env.PORT || 5000;
 
 // ─── Global Middleware ────────────────────────────────────────────────────────
 app.use(helmet());                              // Security headers
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (e.g. mobile apps, Postman)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.some(o => origin.startsWith(o))) return cb(null, true);
+    // Allow any Vercel preview URL
+    if (/\.vercel\.app$/.test(origin)) return cb(null, true);
+    cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: "10kb" }));      // Body parser (limit payload size)
 app.use(morgan("combined", { stream: { write: msg => logger.info(msg.trim()) } }));
 
