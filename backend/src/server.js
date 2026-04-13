@@ -68,10 +68,10 @@ app.use(cors({
 app.use(express.json({ limit: "10kb" }));      // Body parser (limit payload size)
 app.use(morgan("combined", { stream: { write: msg => logger.info(msg.trim()) } }));
 
-// Global rate limiter — 100 requests / 15 min per IP
+// Global rate limiter — 500 requests / 15 min per IP
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  max:      100,
+  max:      500,
   standardHeaders: true,
   message: { success:false, message:"Too many requests. Please try again later." },
 }));
